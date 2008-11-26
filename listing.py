@@ -14,3 +14,4 @@ class Listing():
                 if (self.url.find(matches)==0):
                     self.site=i
                     return 1
+        return 0

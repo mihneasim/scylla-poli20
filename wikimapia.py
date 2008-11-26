@@ -24,4 +24,5 @@ def search(q):
     #print f
 #search=Callable(search)
 
-search("lia manoliu")
+#Test:
+#search("lia manoliu")
