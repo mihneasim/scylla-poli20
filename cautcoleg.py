@@ -1,4 +1,5 @@
 import common,re,wikimapia
+import time # for benchmarking only
 
 def cleanHtml(url,striptags=0):
     #trage sursa html a paginii si opreste doar ce e folositor
@@ -23,17 +24,29 @@ def getStringLocation(html):
     except:
         return ''
     
-def getCoordinatesLocation(location):
-    #input: string location forma "cautcoleg.ro": particular (orasul town)
-    #dandu-se locatia in string, se vor gasi coordonatele
-    town=location[(location.rfind("(")+1):location.rfind(")")]
+def getAddress(string_location):
+    return string_location[:string_location.rfind("(")]
+    
+def getLocation(string_location):
+    #intoarce locatia, adica Orasul
+    town=string_location[(string_location.rfind("(")+1):string_location.rfind(")")]
     town=town[6:]
     if(town[:6]=="Bucure"):
         town="Bucharest"
+    return town
+    
+def getCountry(string_location):
+    #intoarce tara
+    return 'Romania'
+    
+def getCoordinatesLocation(address,location,country):
+    #input: .. 
+    #dandu-se locatia in string, se vor gasi coordonatele
     #return
-    town_country= town+ ", Romania"
+    town=location
+    town_country= town+ ", "+country
     R=[]
-    particular=(location[:location.rfind("(")]).strip()
+    particular=address
     query=particular+' '+town+' '
     #in cazul in care nu gasim match pe localitate
     #returnam primul rezultat
@@ -71,6 +84,8 @@ def getCoordinatesLocation(location):
         return [Rbest[1], Rbest[0]]
     
     
+def getInternalId(url):
+    return re.compile("cautcoleg.ro\/([0-9]*?)\/").findall(url)[0]
 
 def getProperty(html,property):
     #functie generala de extragere a unei valori
@@ -104,6 +119,8 @@ def getMonthlyPrice(html):
         return ''
     
 def areExpensesIncluded(html):
+    #input: clean html, strip tags
+    #Intretinerea inclusa? 0 sau 1
     are = getProperty(html,"n pre.*?:")
     if(are=="Nu"):
         return 0
@@ -112,28 +129,84 @@ def areExpensesIncluded(html):
     return -1
 
 def getAvailableRooms(html):
+    #input: clean html, strip tags
+    #camere disponibile inchirierii
     return getProperty(html,"Camere disponibile:")
 
 def getListingDate(html):
+    #input: clean html, strip tags
+    #intoarce data adaugarii, YYYY-MM-DD
     rawdate = getProperty(html,"Data anun.*?ului:")
     return rawdate
+
+def getImages(html,internal_id):
+    #Atentie! se primeste clean html, dar fara strip tags! si idul intern cautcoleg.ro
+    #images[i][0]-adresa imagine mare, images[i][1]-adresa thumbnail
+    i=1
+    images=[]
+    while(html.find("showSitePhotos.php?ad_id="+str(internal_id)+"&amp;number="+str(i))>-1):
+        images.append(["http://www.cautcoleg.ro/showPhoto.php?type=site&ad_id="+str(internal_id)+"&number="+str(i),\
+        "http://www.cautcoleg.ro/showPhoto.php?type=thumbs&ad_id="+str(internal_id)+"&number="+str(i)])
+        i+=1
+    return images
+
+def getTitle(html):
+    #to be done!!
+    pass
+    
+def getRoomsNo(html):
+    #to be done!!
+    pass
+
+def getDescription(html):
+    #input: clean stripped html
+    return getProperty(html,"Descriere")
+    
+def getFeatures(html):
+    #input: clean stripped html
+    return getProperty(html,"Facilit.*?i")
+    
+def getOtherInfo(html): #to be repaired!!
+    #input: clean stripped html
+    return getProperty(html,"aut coleg.*? de apartament")
+
+
+
+
+
 
 
 
 #Tests:   
-
+start = time.time()
 #ch=cleanHtml('http://www.cautcoleg.ro/22869/caut-colegi-de-apartament-zona-dristor-metrou',1)
-ch = cleanHtml('http://www.cautcoleg.ro/22453/caut-colega-de-apartament-zona-titan-metrou',1)
+
+url='http://www.cautcoleg.ro/22453/caut-colega-de-apartament-zona-titan-metrou'
+url='http://www.cautcoleg.ro/22264/caut-colega-de-apartament-zona-dristor'
+
+chnostrip = cleanHtml(url,0)
+print "grabbed in "+str(time.time()-start)[:-7]+" seconds"
+ch = common.strip_tags(chnostrip)
+#print ch.replace("\n","").replace("\r","").replace("\t\t\t","^")
 #print 'ok ch'
 sl = getStringLocation(ch)
+location = getStringLocation(sl)
+country = getCountry(sl)
+address = getAddress(sl)
 #print 'ok sl'
-Coordinates = getCoordinatesLocation(sl)
+Coordinates = getCoordinatesLocation(address,location,country)
+print "grabbed and located in "+str(time.time()-start)[:-7]+" seconds"
 print "http://maps.yahoo.com/#mvt=h&lat="+Coordinates[0]+"&lon="+Coordinates[1]+"&zoom=16"
 print "data adaugare: "+getListingDate(ch)
 print "suprafata: "+getSMSurface(ch)
 print "camere disponibile: "+getAvailableRooms(ch)
 print "pret lunar: "+getMonthlyPrice(ch)
 print "intretinere inclusa: "+str(areExpensesIncluded(ch))
+print "imagini: "+str(getImages(chnostrip,getInternalId(url)))
+print "\ndescriere: "+getDescription(ch)
+print "\nfeatures: "+getFeatures(ch)
+print "\nAlte info: "+getOtherInfo(ch)
 
+print "grabbed, located and parsed in "+str(time.time()-start)[:-7]+" seconds"
 
 #wikimapia.search(locatie)
