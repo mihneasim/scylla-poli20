@@ -87,14 +87,14 @@ def getCoordinatesLocation(address,location,country):
 def getInternalId(url):
     return re.compile("cautcoleg.ro\/([0-9]*?)\/").findall(url)[0]
 
-def getProperty(html,property):
+def getProperty(html,property,index=0):
     #functie generala de extragere a unei valori
     #din table-ul html al paginii
     #pe baza cheii din prima coloana a tabelului
     html = html.replace("\n","").replace("\r","").replace("\t\t\t","^")
     try:
         #print html
-        el=re.compile(property+"[\t\^]*([^\^]*)\^").findall(html)[0]
+        el=re.compile(property+"[\t\^]*([^\^]*)\^").findall(html)[index]
         return el
     except:
         return ''
@@ -168,7 +168,7 @@ def getFeatures(html):
     
 def getOtherInfo(html): #to be repaired!!
     #input: clean stripped html
-    return getProperty(html,"aut coleg.*? de apartament")
+    return getProperty(html,"aut coleg.*? de apartament",1)
 
 
 
